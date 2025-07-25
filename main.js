@@ -15,39 +15,39 @@ let map, currentLayer;
 const rasterLayers = [
   {
     name: 'SO2 column mass [DU] +00h FCST',
-    base: '/SO2_col_mass_000.tif',
+    base: 'SO2_col_mass_000.tif',
   },
   {
     name: 'SO2 column mass [DU] +06h FCST',
-    base: '/SO2_col_mass_006.tif',
+    base: 'SO2_col_mass_006.tif',
   },
   {
     name: 'SO2 column mass [DU] +12h FCST',
-    base: '/SO2_col_mass_012.tif',
+    base: 'SO2_col_mass_012.tif',
   },
   {
     name: 'SO2 column mass [DU] +18h FCST',
-    base: '/SO2_col_mass_018.tif',
+    base: 'SO2_col_mass_018.tif',
   },
   {
     name: 'SO2 column mass [DU] +24h FCST',
-    base: '/SO2_col_mass_024.tif',
+    base: 'SO2_col_mass_024.tif',
   },
   {
     name: 'SO2 column mass [DU] +30h FCST',
-    base: '/SO2_col_mass_030.tif',
+    base: 'SO2_col_mass_030.tif',
   },
   {
     name: 'SO2 column mass [DU] +36h FCST',
-    base: '/SO2_col_mass_036.tif',
+    base: 'SO2_col_mass_036.tif',
   },
   {
     name: 'SO2 column mass [DU] +42h FCST',
-    base: '/SO2_col_mass_042.tif',
+    base: 'SO2_col_mass_042.tif',
   },
   {
     name: 'SO2 column mass [DU] +48h FCST',
-    base: '/SO2_col_mass_048.tif',
+    base: 'SO2_col_mass_048.tif',
   },
 ];
 
