@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <title>Daily forecasts for Iceland - EXPERIMENTAL!</title>
-    <script type="module" crossorigin src="/forecasts-exp/assets/index.e963b38b.js"></script>
-    <link rel="stylesheet" href="/forecasts-exp/assets/index.2af1d6f8.css">
+    <script type="module" crossorigin src="/forecasts-exp/assets/index.9edd41b3.js"></script>
+    <link rel="stylesheet" href="/forecasts-exp/assets/index.c94a5b38.css">
   </head>
   <body>
     <div id="map-container"></div>
@@ -23,17 +23,17 @@
         <div class="raster-info">
             <h4 id="current-raster-name"></h4>
             <p id="current-raster-description"></p>
-            <p id="current-raster-created"></p>
             <p id="current-raster-index">0 / 0</p>
+            <hr>
+            <p id="current-raster-created"></p>
         </div>
     </div>
 
     <div class="colorbar-container">
         <div class="colorbar-wrapper">
             <canvas class="colorbar" id="colorbar" width="20" height="200"></canvas>
-            <div class="colorbar-labels" id="colorbar-labels">
-                <!-- Labels will be dynamically generated -->
-            </div>
+            <div class="colorbar-labels" id="colorbar-labels"> </div>
+            <div class="colorbar-title" id="colorbar-title"> </div>
         </div>
     </div>
 
