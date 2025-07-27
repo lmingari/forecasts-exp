@@ -34,8 +34,12 @@ function createLayer(url) {
 
 // Initialize the map
 function initMap() {
+    // Read maptiler key
+    const key = import.meta.env.VITE_MAPTILER_API_KEY;
+    if (!key) {
+        console.error('MapTiler API key is missing! Please set VITE_MAPTILER_API_KEY in .env');
+    }
     // Create basemap
-    const key = 'xUdY5cmBTDqgMVS2SYBM';
     const source = new TileJSON({
       url: `https://api.maptiler.com/maps/dataviz/tiles.json?key=${key}`, // source URL
       tileSize: 512,
