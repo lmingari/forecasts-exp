@@ -8,6 +8,7 @@ import {fromLonLat} from 'ol/proj';
 import XYZ from 'ol/source/XYZ.js';
 import colormap from 'colormap';
 import { fromUrl } from 'geotiff';
+import TileJSON from 'ol/source/TileJSON.js';
 
 let currentRasterIndex = 0;
 let map, currentLayer;
@@ -17,61 +18,40 @@ for (let i = 0; i<= 72; i +=6) {
     const time = `${i.toString().padStart(3, '0')}`;
     rasterLayers.push({
         url: `SO2_col_mass_${time}.tif`,
-        name: `SO2 column mass [DU] +${time}h FCST`
+        name: `SO2 column mass [DU] +${time}h FCST`,
+        source: null,
     });
 }
 
-const stops = getColorStops('RdBu',1,20,11);
-const data = ['band', 1];
-const style = {
-  color: [
-    'case',
-    ['<',data,1],
-    [0,0,0,0],
-    ['interpolate',
-    ['linear'],
-    data,
-    ...stops,
-    ]
-  ],
-};
-
-// Create layer for the ith image
-function createLayer(i) {
-  const url = rasterLayers[i].url;
-  const source = new GeoTIFF({
-    normalize: false,
-    interpolate: true,
-    transition: 0,
-    sources: [
-        {
-            url: url,
-            bands: [1],
-        },
-    ],
-  });
-
-  return new TileLayer({
-    source: source,
-    style: style,
-  });
-};
+function getSource(i) {
+    if (rasterLayers[i].source == null) {
+      const url = rasterLayers[i].url;
+      const source = new GeoTIFF({
+        normalize: false,
+        interpolate: true,
+        transition: 0,
+        sources: [ { url: url, bands: [1] } ],
+      });
+      rasterLayers[i].source = source;
+      console.log(`creating source ${i}`)
+    }
+    return rasterLayers[i].source;
+}
 
 // Initialize the map
 function initMap() {
-    const basemap = new TileLayer({
-        source: new OSM(),
+    const key = 'xUdY5cmBTDqgMVS2SYBM';
+    const source = new TileJSON({
+      url: `https://api.maptiler.com/maps/dataviz/tiles.json?key=${key}`, // source URL
+      tileSize: 512,
+      crossOrigin: 'anonymous'
     });
+    const basemap = new TileLayer({ source: source });
+    //const basemap = new TileLayer({ source: new OSM() });
 
-//    const carto = new TileLayer({
-//      source: new XYZ({
-//        url: 'http://{1-4}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-//        attributions: 'Mapa'
-//      }),
-//      properties: { name: 'baseMap' }
-//    });
-
-    currentLayer = createLayer(currentRasterIndex);
+    currentLayer =  new TileLayer({ 
+        source: getSource(currentRasterIndex),
+    });
 
     // Initialize map
     map = new Map({
@@ -92,16 +72,8 @@ function initMap() {
 // Switch to specific raster
 function switchToRaster(index) {
     if (index < 0 || index >= rasterLayers.length) return;
-
     currentRasterIndex = index;
-
-    // Remove current layer
-    map.removeLayer(currentLayer);
-
-    // Add new layer
-    currentLayer = createLayer(currentRasterIndex);
-    map.addLayer(currentLayer);
-
+    currentLayer.setSource(getSource(currentRasterIndex));
     updateRasterInfo();
 }
 
@@ -159,14 +131,33 @@ function getColorStops(name, min, max, steps) {
 
 // Create colorbar
 function createColorbar() {
-    const colorbarCanvas = document.getElementById('colorbar');
-    const colorbarCtx = colorbarCanvas.getContext('2d');
     const labelsContainer = document.getElementById('colorbar-labels');
+    const titleContainer  = document.getElementById('colorbar-title');
+    const colorbarCanvas  = document.getElementById('colorbar');
+    const colorbarCtx = colorbarCanvas.getContext('2d');
 
-    const steps = stops.length/2;
+    const minVal = 0.1;
+    const maxVal = 20;
+    const steps  = 11;
     const barHeight = 200;
     const barWidth = 20;
     const segmentHeight = barHeight / steps;
+
+    const stops = getColorStops('RdBu',minVal,maxVal,steps);
+    const data = ['band', 1];
+    const style = {
+      color: [
+        'case',
+        ['<',data,minVal],
+        [0,0,0,0],
+        ['interpolate',
+        ['linear'],
+        data,
+        ...stops,
+        ]
+      ],
+    };
+    currentLayer.setStyle(style);
 
     // Clear previous labels
     labelsContainer.innerHTML = '';
@@ -192,6 +183,8 @@ function createColorbar() {
     // Update labels container style
     labelsContainer.style.position = 'relative';
     labelsContainer.style.height = `${barHeight}px`;
+
+    titleContainer.textContent = "SO2 column mass [DU]";
 }
 
 // Event listeners
