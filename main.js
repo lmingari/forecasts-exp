@@ -5,13 +5,13 @@ import TileLayer from 'ol/layer/WebGLTile.js';
 import View from 'ol/View.js';
 import OSM from 'ol/source/OSM.js';
 import {fromLonLat} from 'ol/proj';
-import XYZ from 'ol/source/XYZ.js';
 import colormap from 'colormap';
 import { fromUrl } from 'geotiff';
 import TileJSON from 'ol/source/TileJSON.js';
+import LayerGroup from 'ol/layer/Group.js';
 
 let currentRasterIndex = 0;
-let map, currentLayer;
+let gLayers;
 
 const rasterLayers = [];
 for (let i = 0; i<= 72; i +=6) {
@@ -19,27 +19,22 @@ for (let i = 0; i<= 72; i +=6) {
     rasterLayers.push({
         url: `SO2_col_mass_${time}.tif`,
         name: `SO2 column mass [DU] +${time}h FCST`,
-        source: null,
     });
 }
 
-function getSource(i) {
-    if (rasterLayers[i].source == null) {
-      const url = rasterLayers[i].url;
-      const source = new GeoTIFF({
+function createLayer(url) {
+    const source = new GeoTIFF({
         normalize: false,
         interpolate: true,
         transition: 0,
         sources: [ { url: url, bands: [1] } ],
-      });
-      rasterLayers[i].source = source;
-      console.log(`creating source ${i}`)
-    }
-    return rasterLayers[i].source;
+    });
+    return new TileLayer({source: source, visible: false});
 }
 
 // Initialize the map
 function initMap() {
+    // Create basemap
     const key = 'xUdY5cmBTDqgMVS2SYBM';
     const source = new TileJSON({
       url: `https://api.maptiler.com/maps/dataviz/tiles.json?key=${key}`, // source URL
@@ -48,15 +43,15 @@ function initMap() {
     });
     const basemap = new TileLayer({ source: source });
     //const basemap = new TileLayer({ source: new OSM() });
-
-    currentLayer =  new TileLayer({ 
-        source: getSource(currentRasterIndex),
-    });
+    
+    // Create layer group
+    const layers = rasterLayers.map(r => createLayer(r.url));
+    gLayers = new LayerGroup({layers: layers});
 
     // Initialize map
-    map = new Map({
+    const map = new Map({
         target: 'map-container',
-        layers: [basemap,currentLayer],
+        layers: [basemap,gLayers],
         pixelRatio: 1,
         view: new View({
             center: fromLonLat([-18,65]),
@@ -67,13 +62,18 @@ function initMap() {
     // Initialize UI
     updateRasterInfo();
     createColorbar();
+    switchToRaster(currentRasterIndex);
 }
 
 // Switch to specific raster
 function switchToRaster(index) {
     if (index < 0 || index >= rasterLayers.length) return;
+
+    gLayers.getLayers().forEach((layer, i) => {
+      layer.setVisible(i === index);
+    });
+ 
     currentRasterIndex = index;
-    currentLayer.setSource(getSource(currentRasterIndex));
     updateRasterInfo();
 }
 
@@ -92,23 +92,17 @@ function previousRaster() {
 async function updateRasterInfo() {
     const i = currentRasterIndex + 1;
     const n = rasterLayers.length;
-    const currentRaster = rasterLayers[currentRasterIndex];
+    const url = rasterLayers[currentRasterIndex].url;
 
-    const metadataFields = await getCustomMetadataFields();
+    let tiff = await fromUrl(url);
+    const image = await tiff.getImage(0);
+    const metadataFields = await image.getGDALMetadata();
 
-    document.getElementById('current-raster-name').textContent = currentRaster.name;
+    document.getElementById('current-raster-name').textContent = rasterLayers[currentRasterIndex].name;
     document.getElementById('current-raster-description').textContent = `Valid: ${metadataFields.time}`;
     document.getElementById('current-raster-created').textContent = `Created: ${metadataFields.created}`;
     document.getElementById('current-raster-index').textContent = `Step: ${i} / ${n}`;
 }
-
-async function getCustomMetadataFields() {
-    let tiff;
-    const url = rasterLayers[currentRasterIndex].url;
-    tiff = await fromUrl(url);
-    const image = await tiff.getImage(0);
-    return image.getGDALMetadata();
-};
 
 function getColorStops(name, min, max, steps) {
   const delta = max / (steps - 1);
@@ -136,11 +130,11 @@ function createColorbar() {
     const colorbarCanvas  = document.getElementById('colorbar');
     const colorbarCtx = colorbarCanvas.getContext('2d');
 
-    const minVal = 0.1;
-    const maxVal = 20;
-    const steps  = 11;
+    const minVal    = 1;
+    const maxVal    = 20;
+    const steps     = 11;
     const barHeight = 200;
-    const barWidth = 20;
+    const barWidth  = 20;
     const segmentHeight = barHeight / steps;
 
     const stops = getColorStops('RdBu',minVal,maxVal,steps);
@@ -157,7 +151,9 @@ function createColorbar() {
         ]
       ],
     };
-    currentLayer.setStyle(style);
+    gLayers.getLayers().forEach(layer => {
+        layer.setStyle(style);
+    });
 
     // Clear previous labels
     labelsContainer.innerHTML = '';
@@ -206,4 +202,4 @@ document.addEventListener('keydown', (e) => {
 });
 
 // Initialize the application
-window.onload = initMap;
+window.addEventListener("load", initMap);
