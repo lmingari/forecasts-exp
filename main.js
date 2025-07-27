@@ -12,45 +12,16 @@ import { fromUrl } from 'geotiff';
 let currentRasterIndex = 0;
 let map, currentLayer;
 
-const rasterLayers = [
-  {
-    name: 'SO2 column mass [DU] +00h FCST',
-    base: 'SO2_col_mass_000.tif',
-  },
-  {
-    name: 'SO2 column mass [DU] +06h FCST',
-    base: 'SO2_col_mass_006.tif',
-  },
-  {
-    name: 'SO2 column mass [DU] +12h FCST',
-    base: 'SO2_col_mass_012.tif',
-  },
-  {
-    name: 'SO2 column mass [DU] +18h FCST',
-    base: 'SO2_col_mass_018.tif',
-  },
-  {
-    name: 'SO2 column mass [DU] +24h FCST',
-    base: 'SO2_col_mass_024.tif',
-  },
-  {
-    name: 'SO2 column mass [DU] +30h FCST',
-    base: 'SO2_col_mass_030.tif',
-  },
-  {
-    name: 'SO2 column mass [DU] +36h FCST',
-    base: 'SO2_col_mass_036.tif',
-  },
-  {
-    name: 'SO2 column mass [DU] +42h FCST',
-    base: 'SO2_col_mass_042.tif',
-  },
-  {
-    name: 'SO2 column mass [DU] +48h FCST',
-    base: 'SO2_col_mass_048.tif',
-  },
-];
+const rasterLayers = [];
+for (let i = 0; i<= 72; i +=6) {
+    const time = `${i.toString().padStart(3, '0')}`;
+    rasterLayers.push({
+        url: `SO2_col_mass_${time}.tif`,
+        name: `SO2 column mass [DU] +${time}h FCST`
+    });
+}
 
+const stops = getColorStops('RdBu',1,20,11);
 const data = ['band', 1];
 const style = {
   color: [
@@ -60,21 +31,22 @@ const style = {
     ['interpolate',
     ['linear'],
     data,
-    ...getColorStops('RdBu',1,20,11),
+    ...stops,
     ]
   ],
 };
 
 // Create layer for the ith image
 function createLayer(i) {
-  const base = rasterLayers[i].base;
+  const url = rasterLayers[i].url;
   const source = new GeoTIFF({
     normalize: false,
     interpolate: true,
+    transition: 0,
     sources: [
         {
-            url: base,
-            nodata: 0,
+            url: url,
+            bands: [1],
         },
     ],
   });
@@ -87,24 +59,25 @@ function createLayer(i) {
 
 // Initialize the map
 function initMap() {
-//    const osm = new TileLayer({
-//        source: new OSM(),
-//    });
-
-    const carto = new TileLayer({
-      source: new XYZ({
-        url: 'http://{1-4}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-        attributions: 'MaL</a>.'
-      }),
-      properties: { name: 'baseMap' }
+    const basemap = new TileLayer({
+        source: new OSM(),
     });
+
+//    const carto = new TileLayer({
+//      source: new XYZ({
+//        url: 'http://{1-4}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+//        attributions: 'Mapa'
+//      }),
+//      properties: { name: 'baseMap' }
+//    });
 
     currentLayer = createLayer(currentRasterIndex);
 
     // Initialize map
     map = new Map({
         target: 'map-container',
-        layers: [carto,currentLayer],
+        layers: [basemap,currentLayer],
+        pixelRatio: 1,
         view: new View({
             center: fromLonLat([-18,65]),
             zoom: 4
@@ -153,13 +126,14 @@ async function updateRasterInfo() {
 
     document.getElementById('current-raster-name').textContent = currentRaster.name;
     document.getElementById('current-raster-description').textContent = `Valid: ${metadataFields.time}`;
-    document.getElementById('current-raster-index').textContent = `${i} / ${n}`;
+    document.getElementById('current-raster-created').textContent = `Created: ${metadataFields.created}`;
+    document.getElementById('current-raster-index').textContent = `Step: ${i} / ${n}`;
 }
 
 async function getCustomMetadataFields() {
     let tiff;
-    const base = rasterLayers[currentRasterIndex].base;
-    tiff = await fromUrl(base);
+    const url = rasterLayers[currentRasterIndex].url;
+    tiff = await fromUrl(url);
     const image = await tiff.getImage(0);
     return image.getGDALMetadata();
 };
@@ -171,7 +145,7 @@ function getColorStops(name, min, max, steps) {
       colormap: name, 
       nshades: steps, 
       format: 'rgba',
-      alpha: 0.5
+      alpha: 0.6
   });
   for (let i = 0; i < steps; i++) {
     stops[i * 2] = i * delta;
@@ -189,11 +163,7 @@ function createColorbar() {
     const colorbarCtx = colorbarCanvas.getContext('2d');
     const labelsContainer = document.getElementById('colorbar-labels');
 
-
-    const minValue = 1;
-    const maxValue = 20;
-    const steps = 11;
-    
+    const steps = stops.length/2;
     const barHeight = 200;
     const barWidth = 20;
     const segmentHeight = barHeight / steps;
@@ -201,7 +171,6 @@ function createColorbar() {
     // Clear previous labels
     labelsContainer.innerHTML = '';
 
-    const stops = getColorStops('RdBu',minValue,maxValue,steps)
     for (let i = 0; i < steps; i++) {
       const y = barHeight - (i+1)*segmentHeight;
       const value = stops[i * 2];

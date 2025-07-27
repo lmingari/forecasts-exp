@@ -1,5 +1,5 @@
 export default {
-  base: '/forecasts-exp',
+  base: '/forecasts-exp/',
   build: {
     sourcemap: true,
   }
