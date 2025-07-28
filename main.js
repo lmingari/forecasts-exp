@@ -4,11 +4,17 @@ import Map from 'ol/Map.js';
 import TileLayer from 'ol/layer/WebGLTile.js';
 import View from 'ol/View.js';
 import OSM from 'ol/source/OSM.js';
-import {fromLonLat} from 'ol/proj';
+import {fromLonLat,transformExtent} from 'ol/proj';
 import colormap from 'colormap';
 import { fromUrl } from 'geotiff';
 import TileJSON from 'ol/source/TileJSON.js';
 import LayerGroup from 'ol/layer/Group.js';
+
+import VectorLayer from 'ol/layer/Vector.js';
+import VectorSource from 'ol/source/Vector.js';
+import Feature from 'ol/Feature.js';
+import {fromExtent} from 'ol/geom/Polygon.js';
+import {Stroke, Style} from 'ol/style.js';
 
 let currentRasterIndex = 0;
 let gLayers;
@@ -63,8 +69,31 @@ function initMap() {
         })
     });
 
+    const layer = layers[currentRasterIndex];
+    layer.getSource().getView().then((viewConfig) => {
+        const view = map.getView();
+        const extent = transformExtent( 
+            viewConfig.extent, 
+            viewConfig.projection, 
+            view.getProjection() 
+        );
+        const boxLayer = new VectorLayer({
+            map: map,
+            source: new VectorSource({
+                features: [
+                    new Feature( fromExtent(extent) ),
+                ],
+            }),
+            style: new Style({
+                stroke: new Stroke({
+                    color: [250,152,12,0.4],
+                    width: 2,
+                })
+            }),
+        });
+    });
+
     // Initialize UI
-    updateRasterInfo();
     createColorbar();
     switchToRaster(currentRasterIndex);
 }
