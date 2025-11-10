@@ -3,7 +3,7 @@
   "dependencies": {
     "colormap": "^2.3.2",
     "georaster": "^1.6.0",
-    "ol": "10.6.1"
+    "ol": "10.7.0"
   },
   "devDependencies": {
     "gh-pages": "^6.3.0",
